@@ -128,8 +128,7 @@ function illust_download(){
       local user_id=$(echo "$url" | grep -oP "(?<=user_id=[\"'])([0-9]+)(?=[\"'])")
       local image_url="https:$(echo "$url" | grep -oP "(?<=src=\")(.+)(?=\")")"
       local image_original_url="$(echo "$image_url" | grep -oP ".+pic.nijie.net/[0-9]+/")$(echo "$image_url" | grep -oP "nijie_picture.*$")"
-      local image_ext=$(echo $image_url | grep -oP "([0-9]+\.[a-zA-Z0-9]+)$")
-      local image_ext=$(echo $image_ext | grep -oP "(?<=\.)[a-zA-Z0-9]+")
+      local image_ext=$(echo $image_url | grep -oP "(?<=\.)([a-zA-Z0-9]+)$")
       image_index=$((image_index+1))
       declare -A rule_values=(
         ["author_id"]="$user_id"
