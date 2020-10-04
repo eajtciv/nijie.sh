@@ -44,7 +44,8 @@ if [ ! -f "$COOKIE_FILE" ]; then
 fi
 
 RULE_UNSTABLE=("author" "title" "ext")
-
+RULE_RESPONSIVE=("author" "title")
+ 
 function get_task(){
   task=($(cat "$TASK_FILE"))
   echo "${task[0]}"
@@ -64,36 +65,54 @@ function view_wait(){
 function rule_accept(){
   local rule="$1";
   local dict="$(declare -p $2)";eval "declare -A dict=${dict#*=}"
-  for key in ${!dict[@]}; do local value=$(echo "${dict[$key]}"|sed "s/\//_/g");rule="$(echo "$rule" | sed "s/\[$key\]/$value/g")"; done
-  echo "$rule"
+  local responsive=(${3})
+  local array=($(echo "$rule" | grep -oP "[^/]+"))
+  for ((i = 0; i < ${#array[@]}; i++));do
+    local temp="${array[$i]}"
+    for v in "${responsive[@]}"; do temp="$(echo "${temp}" | sed "s/\[$v\]//g")"; done
+    for key in ${!dict[@]}; do local value=$(echo "${dict[$key]}"|sed "s/\//_/g");temp="$(echo "$temp" | sed "s/\[$key\]/$value/g")"; done
+    local min_length=$(echo "$temp" | wc -c)
+    temp="${array[$i]}"
+    for key in ${!dict[@]}; do
+      local value=$(echo "${dict[$key]}"|sed "s/[\/\\:\*\?\"\<\>\|]/_/g")
+      if [ "$(echo -n "${responsive[*]}" | grep -xoF "$key")" != "" ];then
+        local margin=$(echo -ne "$((250-min_length-1))\n0"|sort -n|tail -1)
+        value="$(echo -n "$value"|cut -b -$margin|sed "s/\//_/g")"
+        if [ $margin -gt 0 ]; then value="$(echo -n "${value}"|cut -b -$margin)"; else value=""; fi
+        local length=$(echo -n "$value"|wc -c)
+        min_length=$((min_length-length))
+      fi
+      local a2=($(echo "$value" | grep -oP "[^/]+"))
+      value="$(IFS=_; echo "${a2[*]}")"
+      temp="$(echo "$temp" | sed "s/\[$key\]/$value/g")"
+    done
+    array[$i]="$temp"
+  done
+  [[ "$rule" == /* ]] && echo -n "/"
+  echo "$(IFS=/; echo "${array[*]}")"
 }
 
 function ruleble_directory_searth(){
   local rule="$1"
-  local unstable=(${2})
-  local dict="$(declare -p $3)";eval "declare -A dict=${dict#*=}"
+  local dict="$(declare -p $2)";eval "declare -A dict=${dict#*=}"
+  local unstable=(${3})
+  local responsive=(${4})
   for v in "${unstable[@]}"; do rule="$(echo "$rule" | sed "s/\[$v\]/*/g")"; done
-  local wc="$(rule_accept "$rule" dict)"
+  local wc="$(rule_accept "$rule" dict "${responsive[*]}")"
   local depth=$(echo "$rule" | grep -o "/" | wc -l)
   [[ -d "$(dirname "$wc")" ]] && find "$(dirname "$wc")" -maxdepth $((depth-1)) -type d -name "$(basename "$wc")"
 }
 
 function ruleble_file_searth(){
   local rule="$1"
-  local unstable=(${2})
-  local dict="$(declare -p $3)";eval "declare -A dict=${dict#*=}"
+  local dict="$(declare -p $2)";eval "declare -A dict=${dict#*=}"
+  local unstable=(${3})
+  local responsive=(${4})
   for v in "${unstable[@]}"; do rule="$(echo "$rule" | sed "s/\[$v\]/*/g")"; done
-  local filename="$(rule_accept "$(basename "$rule")" dict)"
-  local directoryname=$(ruleble_directory_searth "$(dirname $rule)" "${unstable[*]}" dict)
+  local filename="$(rule_accept "$(basename "$rule")" dict "${responsive[*]}")"
+  local directoryname=$(ruleble_directory_searth "$(dirname $rule)" dict "${unstable[*]}" "${RULE_RESPONSIVE[*]}")
   local depth=$(echo "$rule" | grep -o "/" | wc -l)
   [[ -d "$directoryname" ]] && find "$directoryname" -maxdepth $((depth-2)) -type f -name "$filename"
-}
-
-function safe_path(){
-  local array=($(echo "$1" | grep -oP "[^/]+"))
-  for ((i = 0; i < ${#array[@]}; i++));do array[$i]="$(echo "${array[$i]}" | sed "s/[\/\\:\*\?\"\<\>\|]/_/g")"; done
-  [[ "$1" == /* ]] && echo -n "/"
-  echo "$(IFS=/; echo "${array[*]}")"
 }
 
 function nijie_login(){
@@ -138,17 +157,17 @@ function illust_download(){
         ["index"]="$image_index"
         ["illust_id"]="$illust_id"
       )
-      if [ -n "$(ruleble_file_searth "$FILENAME_RULE" "${RULE_UNSTABLE[*]}" rule_values)" ]; then
+      if [ -n "$(ruleble_file_searth "$FILENAME_RULE" rule_values "${RULE_UNSTABLE[*]}" "${RULE_RESPONSIVE[*]}")" ]; then
         echo "already ${illust_id}_${image_index}${image_ext}"
       else
         echo "Download => $image_original_url"
-        local output_dirctory="$(ruleble_directory_searth "$(dirname $FILENAME_RULE)" "${RULE_UNSTABLE[*]}" rule_values)"
-        local file_path="$(rule_accept "$FILENAME_RULE" rule_values)"
+        local output_dirctory="$(ruleble_directory_searth "$(dirname $FILENAME_RULE)" rule_values "${RULE_UNSTABLE[*]}" "${RULE_RESPONSIVE[*]}")"
+        local file_path="$(rule_accept "$FILENAME_RULE" rule_values "${RULE_RESPONSIVE[*]}")"
         if [ -z "$output_dirctory" ]; then
           output_dirctory="$(dirname "$file_path")"
           mkdir -p "$(dirname "$file_path")"
         fi
-        file_path="$(safe_path "${output_dirctory}/$(basename "$file_path")")"
+        file_path="${output_dirctory}/$(basename "$file_path")"
         curl -# -A "$USERAGENT" "$image_original_url" > "$file_path"
         sleep 1
       fi
@@ -174,7 +193,7 @@ function member_illusts(){
       ["illust_id"]="$illust_id"
       ["index"]="0"
     )
-    if [ -n "$(ruleble_file_searth "$FILENAME_RULE" "${RULE_UNSTABLE[*]}" rule_values)" ]; then
+    if [ -n "$(ruleble_file_searth "$FILENAME_RULE" rule_values "${RULE_UNSTABLE[*]}" "${RULE_RESPONSIVE[*]}")" ]; then
       echo "already illust_id=$illust_id"
     else
       illust_download $illust_id $user_id
