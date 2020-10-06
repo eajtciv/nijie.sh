@@ -224,6 +224,5 @@ while true ; do
   [[ -n "$id" ]] && member_illusts "$(echo "$id" | grep -oP "(?<=p=)[0-9]+")" "$(echo "$id" | grep -oP "(?<=id=)[0-9]+")"
 
   [[ -f "$TASK_FILE" ]] && args=($(get_task | jq -r .[])) && arg1="${args[0]}" && [[ -z "$args" ]] && rm "$TASK_FILE"
-  [[ -z "$args" ]] && break
-  echo "$arg1" 
+  [[ ! -f "$TASK_FILE" || -z "$args" ]] && break
 done
