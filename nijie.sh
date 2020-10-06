@@ -19,7 +19,7 @@ if [ -z "$1" ]; then
 fi
 
 if [ -z "$(pgrep -a bash | grep -oP "$(basename $0).+main")" ]; then
-  bash "$(pwd)/$(basename $0)" $(IFS=$'\n'; echo "${*}" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g') "main"
+  eval "bash \"$(pwd)/$(basename $0)\" \"$(IFS=$'\n'; echo "${*}" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')\" \"main\""
   exit 0
 elif [ "${@:$#}" != "main" ]; then
   echo "$(IFS=$'\n'; echo "[\"${*}\"]" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')" >> "$TASK_FILE"
@@ -232,27 +232,31 @@ function favorite_illusts(){
   [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "okiniiri.php\?p=$page")" ]] && favorite_illusts "$page" "yes"
 }
 
-arg1="$1"
+args=(${*})
+unset args[-1]
+
 while true ; do
-  #login
-  #nijie.sh login
-  [[ "$arg1" = "login" ]] && nijie_login
+  for i in ${args[*]};do
+    #login
+    #nijie.sh login
+    [[ "$i" = "login" ]] && nijie_login
 
-  #favorite illusts
-  #nijie.sh favorite
-  [[ "$arg1" = "favorite" ]] && favorite_illusts "1" "yes"
-  #Image URL
-  #nijie.sh https://nijie.info/view.php?id=00000
-  id=$(echo "$arg1" | grep -oP "(?<=nijie\.info/view\.php\?id=)[0-9]+$")
-  [[ -n "$id" ]] && illust_download "$id"
-  #Member Illusts URL
-  #nijie.sh https://nijie.info/members.php?id=00000
-  id="$(echo "$arg1" | grep -oP "(?<=nijie\.info/members\.php\?)(id=[0-9]+)$")"
-  [[ -n "$id" ]] && member_illusts "" "$(echo "$id" | grep -oP "(?<=id=)[0-9]+")"
-  #nijie.sh https://nijie.info/members_illust.php?p=0&id=00000
-  id="$(echo "$arg1" | grep -oP "(?<=nijie\.info/members_illust\.php\?)(p=[0-9]+&)?(id=[0-9]+)$")"
-  [[ -n "$id" ]] && member_illusts "$(echo "$id" | grep -oP "(?<=p=)[0-9]+")" "$(echo "$id" | grep -oP "(?<=id=)[0-9]+")"
-
-  [[ -f "$TASK_FILE" ]] && args=($(get_task | jq -r .[])) && arg1="${args[0]}" && [[ -z "$args" ]] && rm "$TASK_FILE"
+    #favorite illusts
+    #nijie.sh favorite
+    [[ "$i" = "favorite" ]] && favorite_illusts "1" "yes"
+    #Image URL
+    #nijie.sh https://nijie.info/view.php?id=00000
+    id=$(echo "$i" | grep -oP "(?<=nijie\.info/view\.php\?id=)[0-9]+$")
+    [[ -n "$id" ]] && illust_download "$id"
+    #Member Illusts URL
+    #nijie.sh https://nijie.info/members.php?id=00000
+    id="$(echo "$i" | grep -oP "(?<=nijie\.info/members\.php\?)(id=[0-9]+)$")"
+    [[ -n "$id" ]] && member_illusts "" "$(echo "$id" | grep -oP "(?<=id=)[0-9]+")"
+    #nijie.sh https://nijie.info/members_illust.php?p=0&id=00000
+    id="$(echo "$i" | grep -oP "(?<=nijie\.info/members_illust\.php\?)(p=[0-9]+&)?(id=[0-9]+)$")"
+    [[ -n "$id" ]] && member_illusts "$(echo "$id" | grep -oP "(?<=p=)[0-9]+")" "$(echo "$id" | grep -oP "(?<=id=)[0-9]+")"
+  done
+  args=""
+  [[ -f "$TASK_FILE" ]] && args=($(get_task | jq -r .[])) && [[ -z "$args" ]] && rm "$TASK_FILE"
   [[ ! -f "$TASK_FILE" || -z "$args" ]] && break
 done
