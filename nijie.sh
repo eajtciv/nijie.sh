@@ -205,12 +205,42 @@ function member_illusts(){
   [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "/members_illust.php\?p=$page&id=$user_id")" ]] && member_illusts "$page" "$user_id" "yes"
 }
 
+function favorite_illusts(){
+  local page="$1"; local allpage="$2"
+  [[ -z $page ]] && page=1 && allpage="yes"
+
+  local web=$(curl --silent -b "$COOKIE_FILE" -A "$USERAGENT" "https://nijie.info/okiniiri.php?p=$page&sort=0")
+  echo -e -n "\033[0;33m"; echo -n "Get => https://nijie.info/okiniiri.php?p=$page&sort=0"; echo -e "\033[0;0m"
+  local illusts=$(echo "$web" | grep -oP "<img class=\"mozamoza ngtag\" illust_id\=\"[^\"]+\" user_id=\"[0-9]+\"")
+  for illust in ${illusts[@]}
+  do
+    local illust_id=$(echo "$illust" | grep -oP "(?<=illust_id=[\"'])([0-9]+)(?=[\"'])")
+    local user_id=$(echo "$illust" | grep -oP "(?<=user_id=[\"'])([0-9]+)(?=[\"'])")
+    declare -A rule_values=(
+      ["author_id"]="$user_id"
+      ["illust_id"]="$illust_id"
+      ["index"]="0"
+    )
+    if [ -n "$(ruleble_file_searth "$FILENAME_RULE" rule_values "${RULE_UNSTABLE[*]}" "${RULE_RESPONSIVE[*]}")" ]; then
+      echo "already illust_id=$illust_id"
+    else
+      illust_download $illust_id $user_id
+      view_wait 3
+    fi
+  done
+  page=$((++page))
+  [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "okiniiri.php\?p=$page")" ]] && favorite_illusts "$page" "yes"
+}
+
 arg1="$1"
 while true ; do
   #login
   #nijie.sh login
   [[ "$arg1" = "login" ]] && nijie_login
 
+  #favorite illusts
+  #nijie.sh favorite
+  [[ "$arg1" = "favorite" ]] && favorite_illusts "1" "yes"
   #Image URL
   #nijie.sh https://nijie.info/view.php?id=00000
   id=$(echo "$arg1" | grep -oP "(?<=nijie\.info/view\.php\?id=)[0-9]+$")
