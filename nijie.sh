@@ -9,6 +9,8 @@ if [ -z "$1" ]; then
   scriptname=$(basename $0)
   echo -e -n "\033[0;32m"; echo -n " # login"; echo -e "\033[0;0m"
   echo " ./$scriptname login"
+  echo -e -n "\033[0;32m"; echo -n " # favorite illusts download"; echo -e "\033[0;0m"
+  echo " ./$scriptname favorite"
   echo -e -n "\033[0;32m"; echo -n " # illust download"; echo -e "\033[0;0m"
   echo " ./$scriptname https://nijie.info/view.php?id=00000"
   echo -e -n "\033[0;32m"; echo -n " # member page illusts download"; echo -e "\033[0;0m"
@@ -19,7 +21,7 @@ if [ -z "$1" ]; then
 fi
 
 if [ -z "$(pgrep -a bash | grep -oP "$(basename $0).+main")" ]; then
-  eval "bash \"$(pwd)/$(basename $0)\" \"$(IFS=$'\n'; echo "${*}" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')\" \"main\""
+  eval "bash \"$(pwd)/$(basename $0)\" \"$(IFS=$'\n'; echo "${*}" | sed "s/\"/\\\\\"/g" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')\" \"main\""
   exit 0
 elif [ "${@:$#}" != "main" ]; then
   echo "$(IFS=$'\n'; echo "[\"${*}\"]" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')" >> "$TASK_FILE"
@@ -100,7 +102,7 @@ function ruleble_directory_searth(){
   for v in "${unstable[@]}"; do rule="$(echo "$rule" | sed "s/\[$v\]/*/g")"; done
   local wc="$(rule_accept "$rule" dict "${responsive[*]}")"
   local depth=$(echo "$rule" | grep -o "/" | wc -l)
-  [[ -d "$(dirname "$wc")" ]] && find "$(dirname "$wc")" -maxdepth $((depth-1)) -type d -name "$(basename "$wc")"
+  [[ -d "$(dirname "$wc")" && $((depth-1)) -gt 0 ]] && find "$(dirname "$wc")" -maxdepth $((depth-1)) -type d -name "$(basename "$wc")"
 }
 
 function ruleble_file_searth(){
@@ -112,7 +114,7 @@ function ruleble_file_searth(){
   local filename="$(rule_accept "$(basename "$rule")" dict "${responsive[*]}")"
   local directoryname=$(ruleble_directory_searth "$(dirname $rule)" dict "${unstable[*]}" "${RULE_RESPONSIVE[*]}")
   local depth=$(echo "$rule" | grep -o "/" | wc -l)
-  [[ -d "$directoryname" ]] && find "$directoryname" -maxdepth $((depth-2)) -type f -name "$filename"
+  [[ -d "$directoryname" && $((depth-2)) -gt 0 ]] && find "$directoryname" -maxdepth $((depth-2)) -type f -name "$filename"
 }
 
 function nijie_login(){
@@ -141,6 +143,9 @@ function illust_download(){
   echo "title: \"${title}\""
   echo "tag: [\"$(echo "${tags[@]}" | sed -e ':loop; N; $!b loop; s/\n/\", \"/g')\"]"
   local urls="$(echo "$web" | grep -oP "(illust_id=[\"']$illust_id[\"'] user_id=[\"'][0-9]+[\"'] itemprop=\"image\" src=\"[^\"]+/nijie_picture[^\"]+\.[a-zA-Z0-9]+\")|(user_id=[\"'][0-9]+[\"'] illust_id=[\"']$illust_id[\"'] src=\"[^\"]+/nijie_picture[^\"]+\.[a-zA-Z0-9]+\")")"
+  [[ -n "${TAG_ALLOW}" && ! "$(echo -n "${tags[*]}" | grep -xe "^${TAG_ALLOW}$")" != "" ]] && echo "not find TAG" && return
+  [[ -n "${TAG_NG}" && "$(echo -n "${tags[*]}" | grep -xe "^${TAG_NG}$")" != "" ]] && echo "find NG_TAG" && return
+  
   if [ -n "$urls" ]; then
     local image_index=-1
     for url in ${urls[@]}; do
@@ -234,9 +239,17 @@ function favorite_illusts(){
 
 args=(${*})
 unset args[-1]
+ARGUMENT_OPTIONS=("--output" "-o" "--tag")
+OPTION_NAME=""
 
 while true ; do
   for i in ${args[*]};do
+    [[ "$(echo -n "${ARGUMENT_OPTIONS[*]}" | grep -xFe "$i")" != "" ]] && OPTION_NAME="$i" && continue
+    [[ "$OPTION_NAME" == "--output" || "$OPTION_NAME" == "-o" ]] && FILENAME_RULE="$i"
+    if [ "$OPTION_NAME" == "--tag" ]; then
+      TAG_ALLOW=$(echo "$i" | grep -oP "(?<=^\"|^(?!\!)| \"| )([^\"]+)(?=\"$|$|\" )" | sed 's/[.[\*^$()+!?{|"]/\\&/g' | sed -e ':loop; N; $!b loop; s/\n/|/g')
+      TAG_NG=$(echo "$i" | grep -oP "(?<=^!\"| !\")([^\"]+)(?=\"$|\" )" | sed 's/[.[\*^$()+!?{|"]/\\&/g' | sed -e ':loop; N; $!b loop; s/\n/|/g')
+    fi
     #login
     #nijie.sh login
     [[ "$i" = "login" ]] && nijie_login
@@ -255,6 +268,7 @@ while true ; do
     #nijie.sh https://nijie.info/members_illust.php?p=0&id=00000
     id="$(echo "$i" | grep -oP "(?<=nijie\.info/members_illust\.php\?)(p=[0-9]+&)?(id=[0-9]+)$")"
     [[ -n "$id" ]] && member_illusts "$(echo "$id" | grep -oP "(?<=p=)[0-9]+")" "$(echo "$id" | grep -oP "(?<=id=)[0-9]+")"
+    OPTION_NAME=""
   done
   args=""
   [[ -f "$TASK_FILE" ]] && args=($(get_task | jq -r .[])) && [[ -z "$args" ]] && rm "$TASK_FILE"
