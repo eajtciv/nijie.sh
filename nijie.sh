@@ -230,7 +230,9 @@ function member_illusts(){
   done
 
   page=$((++page))
-  [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "/members_illust.php\?p=$page&id=$user_id")" ]] && member_illusts "$page" "$user_id" "yes"
+  if [[ "$OPT_LIMIT" == "-1" || "$page" -le "$OPT_LIMIT" ]];then
+    [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "/members_illust.php\?p=$page&id=$user_id")" ]] && member_illusts "$page" "$user_id" "yes"
+  fi
   [[ -n "$OPT_JSON" && "$4" == "yes" ]] && echo "]}"
 }
 
@@ -272,7 +274,9 @@ function favorite_illusts(){
     fi
   done
   page=$((++page))
-  [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "okiniiri.php\?p=$page")" ]] && favorite_illusts "$page" "yes"
+  if [[ "$OPT_LIMIT" == "-1" || "$page" -le "$OPT_LIMIT" ]];then
+    [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "okiniiri.php\?p=$page")" ]] && favorite_illusts "$page" "yes"
+  fi
   [[ -n "$OPT_JSON" && "$3" == "yes" ]] && echo "]"
 }
 
@@ -280,12 +284,14 @@ args=(${*})
 unset args[-1]
 ARGUMENT_OPTIONS=("--output" "-o" "--tag" "--limit")
 OPTION_NAME=""
+OPT_LIMIT="-1"
 
 while true ; do
   for i in ${args[*]};do
     [[ "$(echo -n "${ARGUMENT_OPTIONS[*]}" | grep -xFe "$i")" != "" ]] && OPTION_NAME="$i" && continue
     [[ "$OPTION_NAME" == "--output" || "$OPTION_NAME" == "-o" ]] && FILENAME_RULE="$i"
     [[ "$i" == "--json" ]] && OPT_JSON="$i"
+    [[ "$OPTION_NAME" == "--limit" ]] && OPT_LIMIT="$i"
     if [ "$OPTION_NAME" == "--tag" ]; then
       TAG_ALLOW=$(echo "$i" | grep -oP "(?<=^\"|^(?!\!)| \"| )([^\"]+)(?=\"$|$|\" )" | sed 's/[.[\*^$()+!?{|"]/\\&/g' | sed -e ':loop; N; $!b loop; s/\n/|/g')
       TAG_NG=$(echo "$i" | grep -oP "(?<=^!\"| !\")([^\"]+)(?=\"$|\" )" | sed 's/[.[\*^$()+!?{|"]/\\&/g' | sed -e ':loop; N; $!b loop; s/\n/|/g')
