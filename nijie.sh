@@ -195,7 +195,7 @@ function member_illusts(){
   [[ -z $page ]] && page=1 && recursive="yes"
 
   local web=$(curl --silent -b "$COOKIE_FILE" -A "$USERAGENT" "https://nijie.info/members_illust.php?p=$page&id=$user_id")
-  [[ -z "$OPT_JSON" ]] && echo -e -n "\033[0;33mGet => https://nijie.info/members_illust.php?p=$page&id=$user_id\033[0;0m"
+  [[ -z "$OPT_JSON" ]] && echo -e "\033[0;33mGet => https://nijie.info/members_illust.php?p=$page&id=$user_id\033[0;0m"
   local username=$(echo "$web" | grep -oP "(?<=<p class=\"user_icon\">)(.*)?(?=</p>)" | grep -oP "(?<=<br />)(.*)(?=<br />)")
   local illusts=$(echo "$web" | grep -oP "(?<=<img class=\"mozamoza ngtag\" illust_id\=\")[^\"]+")
   [[ -z "$OPT_JSON" && "$first" == "yes" ]] && echo "username: \"${username}\""
@@ -241,7 +241,7 @@ function favorite_illusts(){
   [[ -z $page ]] && page=1 && recursive="yes"
 
   local web=$(curl --silent -b "$COOKIE_FILE" -A "$USERAGENT" "https://nijie.info/okiniiri.php?p=$page&sort=0")
-  [[ -z "$OPT_JSON" ]] && echo -n -e "\033[0;33mGet => https://nijie.info/okiniiri.php?p=$page&sort=0\033[0;0m"
+  [[ -z "$OPT_JSON" ]] && echo -e "\033[0;33mGet => https://nijie.info/okiniiri.php?p=$page&sort=0\033[0;0m"
   local illusts=$(echo "$web" | grep -oP "<img class=\"mozamoza ngtag\" illust_id\=\"[^\"]+\" user_id=\"[0-9]+\"")
 
   [[ "$first" == "yes" ]] && echo -n "[";
