@@ -191,8 +191,8 @@ function illust_download(){
 }
 
 function member_illusts(){
-  local page="$1"; local user_id="$2"; local allpage="$3"; local first="$4"
-  [[ -z $page ]] && page=1 && allpage="yes"
+  local page="$1"; local user_id="$2"; local recursive="$3"; local first="$4"
+  [[ -z $page ]] && page=1 && recursive="yes"
 
   local web=$(curl --silent -b "$COOKIE_FILE" -A "$USERAGENT" "https://nijie.info/members_illust.php?p=$page&id=$user_id")
   [[ -z "$OPT_JSON" ]] && echo -e -n "\033[0;33mGet => https://nijie.info/members_illust.php?p=$page&id=$user_id\033[0;0m"
@@ -231,14 +231,14 @@ function member_illusts(){
 
   page=$((++page))
   if [[ "$OPT_LIMIT" == "-1" || "$page" -le "$OPT_LIMIT" ]];then
-    [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "/members_illust.php\?p=$page&id=$user_id")" ]] && member_illusts "$page" "$user_id" "yes"
+    [[ "$recursive" = "yes" && -n "$(echo "$web" | grep -oP "/members_illust.php\?p=$page&id=$user_id")" ]] && member_illusts "$page" "$user_id" "yes"
   fi
   [[ -n "$OPT_JSON" && "$4" == "yes" ]] && echo "]}"
 }
 
 function favorite_illusts(){
-  local page="$1"; local allpage="$2"; local first="$3"
-  [[ -z $page ]] && page=1 && allpage="yes"
+  local page="$1"; local recursive="$2"; local first="$3"
+  [[ -z $page ]] && page=1 && recursive="yes"
 
   local web=$(curl --silent -b "$COOKIE_FILE" -A "$USERAGENT" "https://nijie.info/okiniiri.php?p=$page&sort=0")
   [[ -z "$OPT_JSON" ]] && echo -n -e "\033[0;33mGet => https://nijie.info/okiniiri.php?p=$page&sort=0\033[0;0m"
@@ -275,7 +275,7 @@ function favorite_illusts(){
   done
   page=$((++page))
   if [[ "$OPT_LIMIT" == "-1" || "$page" -le "$OPT_LIMIT" ]];then
-    [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "okiniiri.php\?p=$page")" ]] && favorite_illusts "$page" "yes"
+    [[ "$recursive" = "yes" && -n "$(echo "$web" | grep -oP "okiniiri.php\?p=$page")" ]] && favorite_illusts "$page" "yes"
   fi
   [[ -n "$OPT_JSON" && "$3" == "yes" ]] && echo "]"
 }
