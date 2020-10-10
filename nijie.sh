@@ -24,7 +24,7 @@ if [ -z "$(pgrep -a bash | grep -oP "$(basename $0).+main")" ]; then
   eval "bash \"$(pwd)/$(basename $0)\" \"$(IFS=$'\n'; echo "${*}" | sed "s/\"/\\\\\"/g" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')\" \"main\""
   exit 0
 elif [ "${@:$#}" != "main" ]; then
-  echo "$(IFS=$'\n'; echo "[\"$ {*}\"]" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')" >> "$TASK_FILE"
+  echo "$(IFS=$'\n'; echo "[\"${*}\"]" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')" >> "$TASK_FILE"
   exit 0
 fi
 
