@@ -138,7 +138,7 @@ function illust_download(){
   local username=$(echo "$web" | grep -oP "(?<=<p class=\"user_icon\">)(.*)?(?=</p>)" | grep -oP "(?<=<br />)(.*)(?=<br />)")
   local title="$(echo "$web" | grep -oP "(?<=<h2 class=\"illust_title\">)(.*)?(?=</h2>)")"
   local tags="$(echo "$web" | grep -oP "(?<=<span class=\"tag_name\">)(<a href=\"[^\"]+\">).+?(</a>)(?=</span>)" | grep -oP "(?<=\">).*(?<=\">)(.+)(?=</a>)")"
-  local timestamp="$(date -d "$(echo "$web" | grep -oP "(?<=<span>投稿時間：)2019-11-09 18:01:52(?=</span>)")" "+%s")"
+  local timestamp="$(date -d "$(echo "$web" | grep -oP "(?<=<span>投稿時間：)[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}(?=</span>)")" "+%s")"
   if [ -z "$OPT_JSON" ];then
     echo -e "\033[0;33mGet => https://nijie.info/view.php?id=$illust_id\033[0;0m"
     echo "title: \"${title}\""
