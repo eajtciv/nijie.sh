@@ -135,19 +135,22 @@ function login_test(){
 function illust_download(){
   local illust_id=$1;local user_id=$2
   local web=$(curl --silent -b "$COOKIE_FILE" -A "$USERAGENT" "https://nijie.info/view.php?id=$illust_id")
-  echo -e -n "\033[0;33m"; echo -n "Get => https://nijie.info/view.php?id=$illust_id"; echo -e "\033[0;0m"
   local username=$(echo "$web" | grep -oP "(?<=<p class=\"user_icon\">)(.*)?(?=</p>)" | grep -oP "(?<=<br />)(.*)(?=<br />)")
   local title="$(echo "$web" | grep -oP "(?<=<h2 class=\"illust_title\">)(.*)?(?=</h2>)")"
   local tags="$(echo "$web" | grep -oP "(?<=<span class=\"tag_name\">)(<a href=\"[^\"]+\">).+?(</a>)(?=</span>)" | grep -oP "(?<=\">).*(?<=\">)(.+)(?=</a>)")"
   local timestamp="$(date -d "$(echo "$web" | grep -oP "(?<=<span>投稿時間：)2019-11-09 18:01:52(?=</span>)")" "+%s")"
-  echo "title: \"${title}\""
-  echo "author: \"${username}\""
-  echo "timestamp: $(date -d "@$timestamp" "+%Y-%m-%d %H:%M:%S")"
-  echo "tag: [\"$(echo "${tags[@]}" | sed -e ':loop; N; $!b loop; s/\n/\", \"/g')\"]"
+  if [ -z "$OPT_JSON" ];then
+    echo -e "\033[0;33mGet => https://nijie.info/view.php?id=$illust_id\033[0;0m"
+    echo "title: \"${title}\""
+    echo "author: \"${username}\""
+    echo "timestamp: $(date -d "@$timestamp" "+%Y-%m-%d %H:%M:%S")"
+    echo "tag: [\"$(echo "${tags[@]}" | sed -e ':loop; N; $!b loop; s/\n/\", \"/g')\"]"
+  fi
   local urls="$(echo "$web" | grep -oP "(illust_id=[\"']$illust_id[\"'] user_id=[\"'][0-9]+[\"'] itemprop=\"image\" src=\"[^\"]+/nijie_picture[^\"]+\.[a-zA-Z0-9]+\")|(user_id=[\"'][0-9]+[\"'] illust_id=[\"']$illust_id[\"'] src=\"[^\"]+/nijie_picture[^\"]+\.[a-zA-Z0-9]+\")")"
   [[ -n "${TAG_ALLOW}" && ! "$(echo -n "${tags[*]}" | grep -xe "^${TAG_ALLOW}$")" != "" ]] && echo "not find TAG" && return
   [[ -n "${TAG_NG}" && "$(echo -n "${tags[*]}" | grep -xe "^${TAG_NG}$")" != "" ]] && echo "find NG_TAG" && return
   
+  local image_original_urls=()
   if [ -n "$urls" ]; then
     local image_index=-1
     for url in ${urls[@]}; do
@@ -155,6 +158,10 @@ function illust_download(){
       local image_url="https:$(echo "$url" | grep -oP "(?<=src=\")(.+)(?=\")")"
       local image_original_url="$(echo "$image_url" | grep -oP ".+pic.nijie.net/[0-9]+/")$(echo "$image_url" | grep -oP "nijie_picture.*$")"
       local image_ext=$(echo $image_url | grep -oP "(?<=\.)([a-zA-Z0-9]+)$")
+      if [ -n "$OPT_JSON" ];then
+        image_original_urls+=( "$image_original_url" )
+        continue
+      fi
       image_index=$((image_index+1))
       declare -A rule_values=(
         ["author_id"]="$user_id"
@@ -165,9 +172,9 @@ function illust_download(){
         ["illust_id"]="$illust_id"
       )
       if [ -n "$(ruleble_file_searth "$FILENAME_RULE" rule_values "${RULE_UNSTABLE[*]}" "${RULE_RESPONSIVE[*]}")" ]; then
-        echo "already ${illust_id}_${image_index}${image_ext}"
+        [[ -z "$OPT_JSON" ]] && echo "already ${illust_id}_${image_index}${image_ext}"
       else
-        echo "Download => $image_original_url"
+        [[ -z "$OPT_JSON" ]] && echo "Download => $image_original_url"
         local output_dirctory="$(ruleble_directory_searth "$(dirname $FILENAME_RULE)" rule_values "${RULE_UNSTABLE[*]}" "${RULE_RESPONSIVE[*]}")"
         local file_path="$(rule_accept "$FILENAME_RULE" rule_values "${RULE_RESPONSIVE[*]}")"
         if [ -z "$output_dirctory" ]; then
@@ -180,20 +187,34 @@ function illust_download(){
       fi
     done
   fi
+  [[ -n "$OPT_JSON" ]] && echo "{\"id\":\"$illust_id\",\"title\":\"$title\", \"author_id\":\"$user_id\", \"author\":\"$username\", \"timestamp\":$timestamp, \"tags\":[\"$(echo "${tags[@]}" | sed -e ':loop; N; $!b loop; s/\n/\", \"/g')\"],\"images\":[\"$(echo "${image_original_urls[*]}" | sed -e ':loop; N; $!b loop; s/\n/\", \"/g')\"]}"
 }
 
 function member_illusts(){
-  local page="$1"; local user_id="$2"; local allpage="$3"
+  local page="$1"; local user_id="$2"; local allpage="$3"; local first="$4"
   [[ -z $page ]] && page=1 && allpage="yes"
 
   local web=$(curl --silent -b "$COOKIE_FILE" -A "$USERAGENT" "https://nijie.info/members_illust.php?p=$page&id=$user_id")
-  echo -e -n "\033[0;33m"; echo -n "Get => https://nijie.info/members_illust.php?p=$page&id=$user_id"; echo -e "\033[0;0m"
+  [[ -z "$OPT_JSON" ]] && echo -e -n "\033[0;33mGet => https://nijie.info/members_illust.php?p=$page&id=$user_id\033[0;0m"
   local username=$(echo "$web" | grep -oP "(?<=<p class=\"user_icon\">)(.*)?(?=</p>)" | grep -oP "(?<=<br />)(.*)(?=<br />)")
   local illusts=$(echo "$web" | grep -oP "(?<=<img class=\"mozamoza ngtag\" illust_id\=\")[^\"]+")
-  echo "username: \"${username}\""
+  [[ -z "$OPT_JSON" && "$first" == "yes" ]] && echo "username: \"${username}\""
+
+  if [ "$first" == "yes" ];then
+    echo -n "{\"author_id\":\"$user_id\", \"author\":\"$username\", \"illusts\":["
+  fi
 
   for illust_id in ${illusts[@]}
   do
+    if [ -n "$OPT_JSON" ];then
+      if [ "$first" == "yes" ];then
+        echo -n "{\"illust_id\":$illust_id,\"user_id\":$user_id}"
+        first=""
+      else
+        echo -n ",{\"illust_id\":$illust_id,\"user_id\":$user_id}"
+      fi
+      continue
+    fi
     declare -A rule_values=(
       ["author_id"]="$user_id"
       ["author"]="$username"
@@ -210,19 +231,34 @@ function member_illusts(){
 
   page=$((++page))
   [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "/members_illust.php\?p=$page&id=$user_id")" ]] && member_illusts "$page" "$user_id" "yes"
+  [[ -n "$OPT_JSON" && "$4" == "yes" ]] && echo "]}"
 }
 
 function favorite_illusts(){
-  local page="$1"; local allpage="$2"
+  local page="$1"; local allpage="$2"; local first="$3"
   [[ -z $page ]] && page=1 && allpage="yes"
 
   local web=$(curl --silent -b "$COOKIE_FILE" -A "$USERAGENT" "https://nijie.info/okiniiri.php?p=$page&sort=0")
-  echo -e -n "\033[0;33m"; echo -n "Get => https://nijie.info/okiniiri.php?p=$page&sort=0"; echo -e "\033[0;0m"
+  [[ -z "$OPT_JSON" ]] && echo -n -e "\033[0;33mGet => https://nijie.info/okiniiri.php?p=$page&sort=0\033[0;0m"
   local illusts=$(echo "$web" | grep -oP "<img class=\"mozamoza ngtag\" illust_id\=\"[^\"]+\" user_id=\"[0-9]+\"")
+
+  [[ "$first" == "yes" ]] && echo -n "[";
+
   for illust in ${illusts[@]}
   do
     local illust_id=$(echo "$illust" | grep -oP "(?<=illust_id=[\"'])([0-9]+)(?=[\"'])")
     local user_id=$(echo "$illust" | grep -oP "(?<=user_id=[\"'])([0-9]+)(?=[\"'])")
+
+    if [ -n "$OPT_JSON" ];then
+      if [ "$first" == "yes" ];then
+        echo -n "{\"illust_id\":$illust_id,\"user_id\":$user_id}"
+        first=""
+      else
+        echo -n ",{\"illust_id\":$illust_id,\"user_id\":$user_id}"
+      fi
+      continue
+    fi
+
     declare -A rule_values=(
       ["author_id"]="$user_id"
       ["illust_id"]="$illust_id"
@@ -237,17 +273,19 @@ function favorite_illusts(){
   done
   page=$((++page))
   [[ "$allpage" = "yes" && -n "$(echo "$web" | grep -oP "okiniiri.php\?p=$page")" ]] && favorite_illusts "$page" "yes"
+  [[ -n "$OPT_JSON" && "$3" == "yes" ]] && echo "]"
 }
 
 args=(${*})
 unset args[-1]
-ARGUMENT_OPTIONS=("--output" "-o" "--tag")
+ARGUMENT_OPTIONS=("--output" "-o" "--tag" "--limit")
 OPTION_NAME=""
 
 while true ; do
   for i in ${args[*]};do
     [[ "$(echo -n "${ARGUMENT_OPTIONS[*]}" | grep -xFe "$i")" != "" ]] && OPTION_NAME="$i" && continue
     [[ "$OPTION_NAME" == "--output" || "$OPTION_NAME" == "-o" ]] && FILENAME_RULE="$i"
+    [[ "$i" == "--json" ]] && OPT_JSON="$i"
     if [ "$OPTION_NAME" == "--tag" ]; then
       TAG_ALLOW=$(echo "$i" | grep -oP "(?<=^\"|^(?!\!)| \"| )([^\"]+)(?=\"$|$|\" )" | sed 's/[.[\*^$()+!?{|"]/\\&/g' | sed -e ':loop; N; $!b loop; s/\n/|/g')
       TAG_NG=$(echo "$i" | grep -oP "(?<=^!\"| !\")([^\"]+)(?=\"$|\" )" | sed 's/[.[\*^$()+!?{|"]/\\&/g' | sed -e ':loop; N; $!b loop; s/\n/|/g')
@@ -258,7 +296,7 @@ while true ; do
 
     #favorite illusts
     #nijie.sh favorite
-    [[ "$i" = "favorite" ]] && favorite_illusts "1" "yes"
+    [[ "$i" = "favorite" ]] && favorite_illusts "1" "yes" "yes"
     #Image URL
     #nijie.sh https://nijie.info/view.php?id=00000
     id=$(echo "$i" | grep -oP "(?<=nijie\.info/view\.php\?id=)[0-9]+$")
@@ -266,10 +304,10 @@ while true ; do
     #Member Illusts URL
     #nijie.sh https://nijie.info/members.php?id=00000
     id="$(echo "$i" | grep -oP "(?<=nijie\.info/members\.php\?)(id=[0-9]+)$")"
-    [[ -n "$id" ]] && member_illusts "" "$(echo "$id" | grep -oP "(?<=id=)[0-9]+")"
+    [[ -n "$id" ]] && member_illusts "" "$(echo "$id" | grep -oP "(?<=id=)[0-9]+")" "yes" "yes"
     #nijie.sh https://nijie.info/members_illust.php?p=0&id=00000
     id="$(echo "$i" | grep -oP "(?<=nijie\.info/members_illust\.php\?)(p=[0-9]+&)?(id=[0-9]+)$")"
-    [[ -n "$id" ]] && member_illusts "$(echo "$id" | grep -oP "(?<=p=)[0-9]+")" "$(echo "$id" | grep -oP "(?<=id=)[0-9]+")"
+    [[ -n "$id" ]] && member_illusts "$(echo "$id" | grep -oP "(?<=p=)[0-9]+")" "$(echo "$id" | grep -oP "(?<=id=)[0-9]+")" "yes" "yes"
     OPTION_NAME=""
   done
   args=""
