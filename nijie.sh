@@ -200,7 +200,7 @@ function member_illusts(){
   local illusts=$(echo "$web" | grep -oP "(?<=<img class=\"mozamoza ngtag\" illust_id\=\")[^\"]+")
   [[ -z "$OPT_JSON" && "$first" == "yes" ]] && echo "username: \"${username}\""
 
-  if [ "$first" == "yes" ];then
+  if [[ -n "$OPT_JSON" && "$first" == "yes" ]];then
     echo -n "{\"author_id\":\"$user_id\", \"author\":\"$username\", \"illusts\":["
   fi
 
@@ -244,7 +244,7 @@ function favorite_illusts(){
   [[ -z "$OPT_JSON" ]] && echo -e "\033[0;33mGet => https://nijie.info/okiniiri.php?p=$page&sort=0\033[0;0m"
   local illusts=$(echo "$web" | grep -oP "<img class=\"mozamoza ngtag\" illust_id\=\"[^\"]+\" user_id=\"[0-9]+\"")
 
-  [[ "$first" == "yes" ]] && echo -n "[";
+  [[ -n "$OPT_JSON" && "$first" == "yes" ]] && echo -n "[";
 
   for illust in ${illusts[@]}
   do
