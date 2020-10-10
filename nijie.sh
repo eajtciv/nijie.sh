@@ -24,7 +24,7 @@ if [ -z "$(pgrep -a bash | grep -oP "$(basename $0).+main")" ]; then
   eval "bash \"$(pwd)/$(basename $0)\" \"$(IFS=$'\n'; echo "${*}" | sed "s/\"/\\\\\"/g" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')\" \"main\""
   exit 0
 elif [ "${@:$#}" != "main" ]; then
-  echo "$(IFS=$'\n'; echo "[\"${*}\"]" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')" >> "$TASK_FILE"
+  echo "$(IFS=$'\n'; echo "[\"$ {*}\"]" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')" >> "$TASK_FILE"
   exit 0
 fi
 
@@ -139,8 +139,10 @@ function illust_download(){
   local username=$(echo "$web" | grep -oP "(?<=<p class=\"user_icon\">)(.*)?(?=</p>)" | grep -oP "(?<=<br />)(.*)(?=<br />)")
   local title="$(echo "$web" | grep -oP "(?<=<h2 class=\"illust_title\">)(.*)?(?=</h2>)")"
   local tags="$(echo "$web" | grep -oP "(?<=<span class=\"tag_name\">)(<a href=\"[^\"]+\">).+?(</a>)(?=</span>)" | grep -oP "(?<=\">).*(?<=\">)(.+)(?=</a>)")"
-  echo "author: \"${username}\""
+  local timestamp="$(date -d "$(echo "$web" | grep -oP "(?<=<span>投稿時間：)2019-11-09 18:01:52(?=</span>)")" "+%s")"
   echo "title: \"${title}\""
+  echo "author: \"${username}\""
+  echo "timestamp: $(date -d "@$timestamp" "+%Y-%m-%d %H:%M:%S")"
   echo "tag: [\"$(echo "${tags[@]}" | sed -e ':loop; N; $!b loop; s/\n/\", \"/g')\"]"
   local urls="$(echo "$web" | grep -oP "(illust_id=[\"']$illust_id[\"'] user_id=[\"'][0-9]+[\"'] itemprop=\"image\" src=\"[^\"]+/nijie_picture[^\"]+\.[a-zA-Z0-9]+\")|(user_id=[\"'][0-9]+[\"'] illust_id=[\"']$illust_id[\"'] src=\"[^\"]+/nijie_picture[^\"]+\.[a-zA-Z0-9]+\")")"
   [[ -n "${TAG_ALLOW}" && ! "$(echo -n "${tags[*]}" | grep -xe "^${TAG_ALLOW}$")" != "" ]] && echo "not find TAG" && return
