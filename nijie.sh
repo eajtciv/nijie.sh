@@ -223,7 +223,10 @@ function member_illusts(){
     )
     if [ -n "$(ruleble_file_searth "$FILENAME_RULE" rule_values "${RULE_UNSTABLE[*]}" "${RULE_RESPONSIVE[*]}")" ]; then
       echo "already illust_id=$illust_id"
+      OPT_ALREADY_TRY_COUNT=$((++OPT_ALREADY_TRY_COUNT))
+      [[ $OPT_ALREADY_TRY_COUNT -ge  $OPT_ALREADY_TRY ]] && echo -e "\033[0;35mbreak by ALREADY_TRY\033[0;0m" && break
     else
+      OPT_ALREADY_TRY_COUNT=0
       illust_download $illust_id $user_id
       view_wait 3
     fi
@@ -268,7 +271,10 @@ function favorite_illusts(){
     )
     if [ -n "$(ruleble_file_searth "$FILENAME_RULE" rule_values "${RULE_UNSTABLE[*]}" "${RULE_RESPONSIVE[*]}")" ]; then
       echo "already illust_id=$illust_id"
+      OPT_ALREADY_TRY_COUNT=$((++OPT_ALREADY_TRY_COUNT))
+      [[ $OPT_ALREADY_TRY_COUNT -ge  $OPT_ALREADY_TRY ]] && echo -e "\033[0;35mbreak by ALREADY_TRY\033[0;0m" && break
     else
+      OPT_ALREADY_TRY_COUNT=0
       illust_download $illust_id $user_id
       view_wait 3
     fi
@@ -282,9 +288,10 @@ function favorite_illusts(){
 
 args=(${*})
 unset args[-1]
-ARGUMENT_OPTIONS=("--output" "-o" "--tag" "--limit")
+ARGUMENT_OPTIONS=("--output" "-o" "--tag" "--limit" "--atry")
 OPTION_NAME=""
 OPT_LIMIT="-1"
+OPT_ALREADY_TRY_COUNT=0
 
 while true ; do
   for i in ${args[*]};do
@@ -292,6 +299,7 @@ while true ; do
     [[ "$OPTION_NAME" == "--output" || "$OPTION_NAME" == "-o" ]] && FILENAME_RULE="$i"
     [[ "$i" == "--json" ]] && OPT_JSON="$i"
     [[ "$OPTION_NAME" == "--limit" ]] && OPT_LIMIT="$i"
+    [[ "$OPTION_NAME" == "--atry" ]] && OPT_ALREADY_TRY="$i"
     if [ "$OPTION_NAME" == "--tag" ]; then
       TAG_ALLOW=$(echo "$i" | grep -oP "(?<=^\"|^(?!\!)| \"| )([^\"]+)(?=\"$|$|\" )" | sed 's/[.[\*^$()+!?{|"]/\\&/g' | sed -e ':loop; N; $!b loop; s/\n/|/g')
       TAG_NG=$(echo "$i" | grep -oP "(?<=^!\"| !\")([^\"]+)(?=\"$|\" )" | sed 's/[.[\*^$()+!?{|"]/\\&/g' | sed -e ':loop; N; $!b loop; s/\n/|/g')
