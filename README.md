@@ -13,6 +13,7 @@
  - `--output` (string): 出力ファイル名を指定
  - `--tag` (string): タグでフィルタ
  - `--json` ダウンロードせずjson出力
+ - `--atry` (integer): 指定数連続してダウンロード済みなら再帰を中止
 # ファイル名のテンプレート
  - `[title]` タイトル
  - `[illust_id]` イラストID
