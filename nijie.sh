@@ -20,12 +20,20 @@ if [ -z "$1" ]; then
   exit 0
 fi
 
+for i in ${*};do
+  [[ "$i" == "--notask" ]] && OPT_NOTASK="$i"
+  [[ "$i" == "--json" ]] && OPT_NOTASK="$i"
+done
+
+
 if [ -z "$(pgrep -a bash | grep -oP "$(basename $0).+main")" ]; then
   eval "bash \"$(pwd)/$(basename $0)\" \"$(IFS=$'\n'; echo "${*}" | sed "s/\"/\\\\\"/g" | sed -e ':loop; N; $!b loop; s/\n/\" \"/g')\" \"main\""
   exit 0
 elif [ "${@:$#}" != "main" ]; then
-  echo "[\"$(IFS=$'\n'; echo "${*}" | sed 's/["\]/\\&/g' | sed -e ':loop; N; $!b loop; s/\n/\", \"/g')\"]" >> "$TASK_FILE"
-  exit 0
+  if [ -z "$OPT_NOTASK" ]; then
+    echo "[\"$(IFS=$'\n'; echo "${*}" | sed 's/["\]/\\&/g' | sed -e ':loop; N; $!b loop; s/\n/\", \"/g')\"]" >> "$TASK_FILE"
+    exit 0
+  fi
 fi
 
 if [ -f "$CONFIG_FILE" ]; then
@@ -287,7 +295,7 @@ function favorite_illusts(){
 }
 
 args=(${*})
-unset args[-1]
+[[ -z "$OPT_NOTASK" ]] && unset args[-1]
 ARGUMENT_OPTIONS=("--output" "-o" "--tag" "--limit" "--atry")
 OPTION_NAME=""
 OPT_LIMIT="-1"
@@ -325,6 +333,6 @@ while true ; do
     OPTION_NAME=""
   done
   args=""
-  [[ -f "$TASK_FILE" ]] && args=($(get_task | jq -r .[])) && [[ -z "$args" ]] && rm "$TASK_FILE"
+  [[ -z "$OPT_NOTASK" && -f "$TASK_FILE" ]] && args=($(get_task | jq -r .[])) && [[ -z "$args" ]] && rm "$TASK_FILE"
   [[ ! -f "$TASK_FILE" || -z "$args" ]] && break
 done
