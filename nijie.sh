@@ -154,7 +154,7 @@ function illust_download(){
     echo "timestamp: $(date -d "@$timestamp" "+%Y-%m-%d %H:%M:%S")"
     echo "tag: [\"$(echo "${tags[@]}" | sed -e ':loop; N; $!b loop; s/\n/\", \"/g')\"]"
   fi
-  local urls="$(echo "$web" | grep -oP "(illust_id=[\"']$illust_id[\"'] user_id=[\"'][0-9]+[\"'] itemprop=\"image\" src=\"[^\"]+/nijie_picture[^\"]+\.[a-zA-Z0-9]+\")|(user_id=[\"'][0-9]+[\"'] illust_id=[\"']$illust_id[\"'] src=\"[^\"]+/nijie_picture[^\"]+\.[a-zA-Z0-9]+\")")"
+  local urls="$(echo "$web" | grep -oP "(illust_id=[\"']$illust_id[\"'] user_id=[\"'][0-9]+[\"'] itemprop=\"image\" src=\"[^\"]+\")|(user_id=[\"'][0-9]+[\"'] illust_id=[\"']$illust_id[\"'] src=\"[^\"]+\")")"
   [[ -n "${TAG_ALLOW}" && ! "$(echo -n "${tags[*]}" | grep -xe "^${TAG_ALLOW}$")" != "" ]] && echo "not find TAG" && return
   [[ -n "${TAG_NG}" && "$(echo -n "${tags[*]}" | grep -xe "^${TAG_NG}$")" != "" ]] && echo "find NG_TAG" && return
   
@@ -164,7 +164,9 @@ function illust_download(){
     for url in ${urls[@]}; do
       local user_id=$(echo "$url" | grep -oP "(?<=user_id=[\"'])([0-9]+)(?=[\"'])")
       local image_url="https:$(echo "$url" | grep -oP "(?<=src=\")(.+)(?=\")")"
-      local image_original_url="$(echo "$image_url" | grep -oP ".+pic.nijie.net/[0-9]+/")$(echo "$image_url" | grep -oP "nijie_picture.*$")"
+      local image_original_url=""
+      [[ -n "$(echo "$image_url" | grep -oP "https://pic\.nijie\.net/.*/nijie_picture/")" ]] && image_original_url="$(echo "$image_url" | grep -oP ".+pic.nijie.net/[0-9]+/")$(echo "$image_url" | grep -oP "nijie_picture.*$")"
+      [[ -n "$(echo "$image_url" | grep -oP "https://pic\.nijie\.net/.*/nijie/[0-9]+/")" ]] && image_original_url="$(echo "$image_url" | grep -oP ".+pic.nijie.net/[0-9]+/")$(echo "$image_url" | grep -oP "nijie/.*$")"
       local image_ext=$(echo $image_url | grep -oP "(?<=\.)([a-zA-Z0-9]+)$")
       if [ -n "$OPT_JSON" ];then
         image_original_urls+=( "$image_original_url" )
