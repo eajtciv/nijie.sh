@@ -133,7 +133,7 @@ function nijie_login(){
 }
 
 function login_test(){
-  if [ -n "$(cat "$COOKIE_FILE" | grep n_session_hash)" ]; then
+  if [ -n "$(cat "$COOKIE_FILE" | grep nijie_tok)" ]; then
     echo "login ok."
   else
     echo "login error."
