@@ -1,7 +1,10 @@
 # nijie.sh
 [shell script] nijie.info download script
 
-
+実行に必要なコマンド
+```
+jq wc curl cat grep dirname basename
+```
 
 # ログイン(プロンプトを使用したログイン)
 ```
@@ -40,7 +43,7 @@
 ```
 ./nijie.sh --tag 'オリジナル' https://nijie.info/members_illust.php?id=xxxxxx
 ```
-#### メンバーからイラストをダウンロード (オリジナルタグを含むまない)
+#### メンバーからイラストをダウンロード (オリジナルタグを除く)
 ```
 ./nijie.sh --tag '!"オリジナル"' https://nijie.info/members_illust.php?id=xxxxxx
 ```
