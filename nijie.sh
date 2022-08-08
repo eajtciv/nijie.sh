@@ -166,7 +166,7 @@ function illust_download(){
       local image_url="https:$(echo "$url" | grep -oP "(?<=src=\")(.+)(?=\")")"
       local image_original_url=""
       [[ -n "$(echo "$image_url" | grep -oP "https://pic\.nijie\.net/.*/nijie_picture/")" ]] && image_original_url="$(echo "$image_url" | grep -oP ".+pic.nijie.net/[0-9]+/")$(echo "$image_url" | grep -oP "nijie_picture.*$")"
-      [[ -n "$(echo "$image_url" | grep -oP "https://pic\.nijie\.net/.*/nijie/[0-9]+/")" ]] && image_original_url="$(echo "$image_url" | grep -oP ".+pic.nijie.net/[0-9]+/")$(echo "$image_url" | grep -oP "nijie/.*$")"
+      [[ -n "$(echo "$image_url" | grep -oP "https://pic\.nijie\.net/.*/nijie/[0-9a-z]+/")" ]] && image_original_url="$(echo "$image_url" | grep -oP ".+pic.nijie.net/[0-9]+/")$(echo "$image_url" | grep -oP "nijie/.*$")"
       local image_ext=$(echo $image_url | grep -oP "(?<=\.)([a-zA-Z0-9]+)$")
       if [ -n "$OPT_JSON" ];then
         image_original_urls+=( "$image_original_url" )
